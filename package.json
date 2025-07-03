@@ -1,0 +1,17 @@
+{
+  "name": "audit-tool",
+  "version": "1.0.0",
+  "description": "A modern web-based tool for managing, tracking, and auditing projects with role-based access, stepwise audit execution, notifications, and more.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd backend && npm run start",
+    "client": "cd frontend && npm run dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}

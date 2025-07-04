@@ -33,6 +33,7 @@ const Dashboard = () => {
   const [quarterFilter, setQuarterFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState('');
   const [loading, setLoading] = useState(true);
+  const [auditors, setAuditors] = useState([]);
   const user = getUser();
 
   const fetchAudits = async () => {
@@ -56,9 +57,18 @@ const Dashboard = () => {
     } catch {}
   };
 
+  const fetchAuditors = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('/api/user', { headers: { Authorization: `Bearer ${token}` } });
+      setAuditors(res.data.filter(u => u.role === 'Auditor'));
+    } catch {}
+  };
+
   useEffect(() => {
     fetchAudits();
     fetchProjects();
+    fetchAuditors();
     // eslint-disable-next-line
   }, []);
 
@@ -273,81 +283,42 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Edit Requests Alert */}
-        {pendingEditRequests.length > 0 && (
-          <div className="mb-8 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl shadow-sm">
-            <div className="p-6">
-              <div className="flex items-center mb-4">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-lg font-semibold text-yellow-800">Edit Access Requests</h3>
-                  <p className="text-yellow-700">{pendingEditRequests.length} auditor(s) requesting edit access</p>
-                </div>
-                <span className="ml-auto bg-yellow-500 text-white text-sm font-bold px-3 py-1 rounded-full">
-                  {pendingEditRequests.length}
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {pendingEditRequests.map(a => (
-                  <div key={a._id} className="bg-white border border-yellow-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="font-medium text-gray-900 mb-2">{a.project?.name || 'Project'}</div>
-                    <div className="text-sm text-gray-600 mb-1">Quarter: <span className="font-semibold">{a.quarter}</span></div>
-                    <div className="text-sm text-gray-600 mb-3">Auditor: <span className="italic">{a.assignedAuditor?.name || '-'}</span></div>
-                    <a 
-                      href={`/audits/${a._id}`} 
-                      className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                      View Audit
-                      <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Charts */}
         <div className="flex flex-row gap-8 mb-8 overflow-x-auto">
+          {/* Auditor Stats Card */}
           <div className="flex-1 min-w-[340px] bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Audit Status Distribution</h3>
-            <div className="h-64">
-              <Bar 
-                data={barChartData} 
-                options={{ 
-                  responsive: true, 
-                  maintainAspectRatio: false,
-                  plugins: { 
-                    legend: { display: false },
-                    tooltip: {
-                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                      titleColor: 'white',
-                      bodyColor: 'white',
-                      borderColor: 'rgba(255, 255, 255, 0.1)',
-                      borderWidth: 1,
-                    }
-                  },
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      grid: {
-                        color: 'rgba(0, 0, 0, 0.1)',
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Auditor Overview</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="p-2 text-left font-semibold">Auditor</th>
+                    <th className="p-2 text-center font-semibold">Total Audits</th>
+                    <th className="p-2 text-center font-semibold">Completed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditors.map(auditor => {
+                    const stats = audits.reduce((acc, a) => {
+                      if (a.assignedAuditor && a.assignedAuditor._id === auditor._id) {
+                        acc.total += 1;
+                        if (a.status === 'Completed') acc.completed += 1;
                       }
-                    },
-                    x: {
-                      grid: {
-                        display: false,
-                      }
-                    }
-                  }
-                }} 
-              />
+                      return acc;
+                    }, { total: 0, completed: 0 });
+                    return (
+                      <tr key={auditor._id} className="border-b last:border-0">
+                        <td className="p-2 font-medium text-gray-900">{auditor.name}</td>
+                        <td className="p-2 text-center">{stats.total}</td>
+                        <td className="p-2 text-center">{stats.completed}</td>
+                      </tr>
+                    );
+                  })}
+                  {auditors.length === 0 && (
+                    <tr><td colSpan={3} className="text-gray-400 text-center py-8">No auditor data available.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
           <div className="flex-1 min-w-[340px] bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -380,72 +351,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="flex flex-row gap-4 overflow-x-auto">
-            <div className="min-w-[220px]">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-              <select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
-              >
-                <option value="">All Statuses</option>
-                <option value="Pending">Pending</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-              </select>
-            </div>
-            <div className="min-w-[220px]">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Quarter</label>
-              <select
-                value={quarterFilter}
-                onChange={e => setQuarterFilter(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
-              >
-                <option value="">All Quarters</option>
-                <option value="Q1">Q1</option>
-                <option value="Q2">Q2</option>
-                <option value="Q3">Q3</option>
-                <option value="Q4">Q4</option>
-              </select>
-            </div>
-            <div className="min-w-[220px]">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Project</label>
-              <select
-                value={projectFilter}
-                onChange={e => setProjectFilter(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
-              >
-                <option value="">All Projects</option>
-                {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={() => { setStatusFilter(''); setQuarterFilter(''); setProjectFilter(''); }}
-                className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 font-medium transition"
-              >
-                Clear Filters
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex">
-              <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-              <div className="ml-3">
-                <p className="text-sm text-red-800">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Audit Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -465,6 +370,56 @@ const Dashboard = () => {
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">UI SPOCS</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">Delivery Manager</th>
                   <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Action</th>
+                </tr>
+                <tr>
+                  <th className="px-4 py-2 bg-gray-50">
+                    <select
+                      value={projectFilter}
+                      onChange={e => setProjectFilter(e.target.value)}
+                      className="w-full p-1 border border-gray-300 rounded text-xs"
+                    >
+                      <option value="">All Projects</option>
+                      {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                    </select>
+                  </th>
+                  <th className="px-4 py-2 bg-gray-50">
+                    <select
+                      value={quarterFilter}
+                      onChange={e => setQuarterFilter(e.target.value)}
+                      className="w-full p-1 border border-gray-300 rounded text-xs"
+                    >
+                      <option value="">All Quarters</option>
+                      <option value="Q1">Q1</option>
+                      <option value="Q2">Q2</option>
+                      <option value="Q3">Q3</option>
+                      <option value="Q4">Q4</option>
+                    </select>
+                  </th>
+                  <th className="px-4 py-2 bg-gray-50"></th>
+                  <th className="px-4 py-2 bg-gray-50">
+                    <select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="w-full p-1 border border-gray-300 rounded text-xs"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="Pending">Pending</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </th>
+                  <th className="px-4 py-2 bg-gray-50"></th>
+                  <th className="px-4 py-2 bg-gray-50"></th>
+                  <th className="px-4 py-2 bg-gray-50"></th>
+                  <th className="px-4 py-2 bg-gray-50"></th>
+                  <th className="px-4 py-2 bg-gray-50 text-center">
+                    <button
+                      onClick={() => { setStatusFilter(''); setQuarterFilter(''); setProjectFilter(''); }}
+                      className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 text-xs font-medium transition"
+                    >
+                      Clear
+                    </button>
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200 text-sm">

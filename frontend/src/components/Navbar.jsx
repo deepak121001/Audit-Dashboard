@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { NavLink, useNavigate, Link } from 'react-router-dom';
 
 function getUser() {
   try {
@@ -15,6 +15,20 @@ function getUser() {
 const Navbar = () => {
   const navigate = useNavigate();
   const user = getUser();
+  const [notifications, setNotifications] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    if (user?.role === 'Admin') {
+      const token = localStorage.getItem('token');
+      fetch('/api/audits', { headers: { Authorization: `Bearer ${token}` } })
+        .then(res => res.json())
+        .then(data => {
+          const pending = data.filter(a => a.editRequest && !a.editEnabled);
+          setNotifications(pending);
+        });
+    }
+  }, [user]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -36,11 +50,71 @@ const Navbar = () => {
       </div>
       <div className="flex items-center gap-4">
         {user && (
-          <div className="text-right mr-4">
-            <div className="font-semibold text-gray-900">{user.name}</div>
-            <div className="text-xs text-gray-700">{user.email}</div>
-            <div className="text-xs capitalize text-gray-700">{user.role}</div>
-          </div>
+          <>
+            <div className="text-right mr-4">
+              <div className="font-semibold text-gray-900">{user.name}</div>
+              <div className="text-xs text-gray-700">{user.email}</div>
+              <div className="text-xs capitalize text-gray-700">{user.role}</div>
+            </div>
+            {user.role === 'Admin' && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowDropdown(v => !v)}
+                  className="relative group bg-yellow-50 hover:bg-yellow-100 text-yellow-600 rounded-full w-10 h-10 flex items-center justify-center transition shadow"
+                  aria-label="Notifications"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                  {notifications.length > 0 && (
+                    <span className="absolute top-0 right-0 bg-yellow-500 text-white text-xs font-bold rounded-full px-2 py-0.5">{notifications.length}</span>
+                  )}
+                </button>
+                {showDropdown && (
+                  <div className="absolute right-0 mt-2 w-96 bg-white border border-yellow-200 rounded-xl shadow-lg z-50 p-4">
+                    <div className="font-bold text-yellow-800 mb-2 flex items-center gap-2">
+                      <svg className="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      Edit Access Requests
+                    </div>
+                    {notifications.length === 0 ? (
+                      <div className="text-gray-500 text-sm">No pending requests.</div>
+                    ) : (
+                      notifications.map(a => (
+                        <div key={a._id} className="mb-3 p-3 bg-yellow-50 border border-yellow-100 rounded-lg">
+                          <div className="font-semibold text-gray-900">{a.project?.name || 'Project'}</div>
+                          <div className="text-xs text-gray-600 mb-1">Quarter: <span className="font-semibold">{a.quarter}</span></div>
+                          <div className="text-xs text-gray-600 mb-2">Auditor: <span className="italic">{a.assignedAuditor?.name || '-'}</span></div>
+                          <Link
+                            to={`/audits/${a._id}`}
+                            className="inline-flex items-center px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View Audit
+                            <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </Link>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            <button
+              onClick={handleLogout}
+              className="relative group bg-red-50 hover:bg-red-100 text-red-600 rounded-full w-10 h-10 flex items-center justify-center transition shadow"
+              aria-label="Logout"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" />
+              </svg>
+              <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 px-2 py-1 text-xs text-white bg-black rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-10">Logout</span>
+            </button>
+          </>
         )}
       </div>
     </nav>

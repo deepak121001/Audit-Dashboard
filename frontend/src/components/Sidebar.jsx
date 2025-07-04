@@ -52,15 +52,15 @@ const Sidebar = () => {
         style={{ minWidth: '14rem' }}
       >
         <div>
-          <div className="text-2xl font-bold px-6 py-6 border-b border-[#eb1000] bg-[#374151] text-white">Audit Tool</div>
+          <div className="text-2xl font-bold px-6 py-6 border-b border-[#eb1000] bg-[#374151] text-white">Audit Dashboard</div>
           <nav className="flex flex-col gap-2 mt-6 px-4">
             {role === 'Admin' && (
               <button onClick={() => handleNav('/dashboard')} className={`${isActive('/dashboard') ? 'bg-[#eb1000] text-white rounded px-3 py-2 font-bold' : 'px-3 py-2 rounded hover:bg-[#ffe0db] hover:text-[#eb1000] transition'}`}>Dashboard</button>
             )}
-            <button onClick={() => handleNav('/projects')} className={`${isActive('/projects') ? 'bg-[#eb1000] text-white rounded px-3 py-2 font-bold' : 'px-3 py-2 rounded hover:bg-[#ffe0db] hover:text-[#eb1000] transition'}`}>Projects</button>
-            <button onClick={() => handleNav('/audits')} className={`${isActive('/audits') ? 'bg-[#eb1000] text-white rounded px-3 py-2 font-bold' : 'px-3 py-2 rounded hover:bg-[#ffe0db] hover:text-[#eb1000] transition'}`}>Audits</button>
+            <button onClick={() => handleNav('/projects')} className={`${isActive('/projects') ? 'bg-[#eb1000] text-white rounded px-3 py-2 font-bold' : 'px-3 py-2 rounded hover:bg-[#ffe0db] hover:text-[#eb1000] transition'}`}>{role === 'Admin' ? 'Add Projects' : 'Projects'}</button>
+            <button onClick={() => handleNav('/audits')} className={`${isActive('/audits') ? 'bg-[#eb1000] text-white rounded px-3 py-2 font-bold' : 'px-3 py-2 rounded hover:bg-[#ffe0db] hover:text-[#eb1000] transition'}`}>{role === 'Admin' ? 'Request Audits' : 'Audits'}</button>
             {role === 'Admin' && (
-              <button onClick={() => handleNav('/users')} className={`${isActive('/users') ? 'bg-[#eb1000] text-white rounded px-3 py-2 font-bold' : 'px-3 py-2 rounded hover:bg-[#ffe0db] hover:text-[#eb1000] transition'}`}>Users</button>
+              <button onClick={() => handleNav('/users')} className={`${isActive('/users') ? 'bg-[#eb1000] text-white rounded px-3 py-2 font-bold' : 'px-3 py-2 rounded hover:bg-[#ffe0db] hover:text-[#eb1000] transition'}`}>Add Users</button>
             )}
           </nav>
         </div>
